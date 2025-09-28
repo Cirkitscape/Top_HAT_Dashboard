@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Top HAT Dashboard</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { 
+      background: linear-gradient(135deg, #0f1419 0%, #1a2332 25%, #0f1419 50%, #1a2332 75%, #0f1419 100%);
+      background-size: 400% 400%;
+      animation: circuitFlow 20s ease-in-out infinite;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    @keyframes circuitFlow {
+      0%, 100% { background-position: 0% 0%; }
+      25% { background-position: 100% 0%; }
+      50% { background-position: 100% 100%; }
+      75% { background-position: 0% 100%; }
+    }
+
+    .card { 
+      margin-top: 20px;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .usb-device {
+      background-color: rgba(248, 249, 250, 0.9);
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 5px 8px;
+      margin: 2px;
+      font-size: 0.85em;
+      display: inline-block;
+    }
+
+    /* RPi GPIO layout */
+    .pin-grid { display: flex; flex-wrap: wrap; justify-content: center; }
+    .pin-card { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 6px; 
+      padding: 8px; 
+      margin: 6px; 
+      border: 1px solid #e9ecef; 
+      border-radius: 10px; 
+      background: #fff; 
+      min-width: 160px;
+    }
+    .pin-title { font-weight: 600; font-size: 0.95rem; }
+    .btn-main { min-width: 140px; }
+    .btn-group-sm .btn { min-width: 75px; }
+    .btn-disabled { pointer-events: none; opacity: 0.55; }
+
+    /* Colors for main toggle */
+    .btn-high { background-color: #28a745; color: #fff; }
+    .btn-low  { background-color: #dc3545; color: #fff; }
+    .btn-off  { background-color: #6c757d; color: #fff; }
+
+    /* Small mode buttons */
+    .btn-config   { background-color: #ffc107; color: #212529; } /* Output */
+    .btn-input    { background-color: #0dcaf0; color: #fff; }   /* Input */
+    .btn-unconfig { background-color: #6c757d; color: #fff; }   /* Unconfig */
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+
+  <div class="text-center mb-4">
+    <h2 class="text-white"><i class="fa-solid fa-microchip"></i> Top HAT Dashboard</h2>
+  </div>
+
+  <!-- ADC -->
+  <div class="card shadow">
+    <div class="card-header bg-primary text-white"><i class="fa-solid fa-bolt"></i> ADC Channels</div>
+    <div class="card-body">
+      <table class="table table-bordered" id="adcTable">
+        <thead><tr><th>Channel</th><th>Voltage (V)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- GPIO A -->
+  <div class="card shadow">
+    <div class="card-header bg-success text-white"><i class="fa-solid fa-toggle-on"></i> GPIO Port A Controls</div>
+    <div class="card-body"><div id="gpioControlsA" class="d-flex flex-wrap justify-content-center"></div></div>
+  </div>
+
+  <!-- GPIO B -->
+  <div class="card shadow">
+    <div class="card-header bg-info text-white"><i class="fa-solid fa-toggle-on"></i> GPIO Port B Controls</div>
+    <div class="card-body"><div id="gpioControlsB" class="d-flex flex-wrap justify-content-center"></div></div>
+  </div>
+
+  <!-- Pi GPIO -->
+  <div class="card shadow">
+    <div class="card-header bg-danger text-white"><i class="fa-brands fa-raspberry-pi"></i> Raspberry Pi GPIO</div>
+    <div class="card-body">
+      <div id="rpiGpioControls" class="pin-grid"></div>
+    </div>
+  </div>
+
+  <!-- RS-485 -->
+  <div class="card shadow">
+    <div class="card-header bg-dark text-white"><i class="fa-solid fa-plug"></i> RS-485</div>
+    <div class="card-body">
+      <div class="input-group mb-3">
+        <input type="text" id="rs485Input" class="form-control" placeholder="Enter RS-485 message">
+        <button class="btn btn-primary" onclick="sendRS485()">Send</button>
+      </div>
+      <p><strong>Last Received:</strong> <span id="rs485Last">None</span></p>
+    </div>
+  </div>
+
+  <!-- USB -->
+  <div class="card shadow">
+    <div class="card-header bg-warning text-dark"><i class="fa-solid fa-usb"></i> USB Devices</div>
+    <div class="card-body">
+      <p><strong>Status:</strong> <span id="usbStatus">Checking...</span></p>
+      <div id="usbDevices"></div>
+    </div>
+  </div>
+
+  <p class="text-muted small text-center mt-3" id="timestamp"></p>
+</div>
+
+<script>
+/* ---------- Helpers for robust mode/state detection ---------- */
+const OUTPUT_VALUES = new Set([0, 'OUT', 'out', 'GPIO.OUT']);
+const INPUT_VALUES  = new Set([1, 'IN', 'in', 'GPIO.IN']);
+
+function isOutputMode(mode) { return OUTPUT_VALUES.has(mode); }
+function isInputMode(mode)  { return INPUT_VALUES.has(mode); }
+function isHighState(v)     { return v === 1 || v === true || v === '1' || v === 'HIGH' || v === 'high'; }
+
+/* ----------------------- Data refresh ------------------------ */
+function fetchData() {
+  fetch("/json")
+  .then(res => res.json())
+  .then(data => {
+    let hardwareStatus = data.hardware_status || {};
+
+    // ADC
+    let adcBody = document.querySelector("#adcTable tbody");
+    adcBody.innerHTML = "";
+    if (data.adc && Object.keys(data.adc).length > 0) {
+      for (let ch in data.adc) {
+        adcBody.innerHTML += `<tr><td>${ch}</td><td>${data.adc[ch]}</td></tr>`;
+      }
+    } else {
+      adcBody.innerHTML = "<tr><td colspan='2' class='text-muted text-center'>ADC not available</td></tr>";
+    }
+
+    // MCP23017 GPIO
+    renderMCP("A", data, hardwareStatus);
+    renderMCP("B", data, hardwareStatus);
+
+    // Pi GPIO
+    updateRPiGPIO(data, hardwareStatus.rpi_gpio);
+
+    // RS-485
+    let rs485Input = document.getElementById("rs485Input");
+    let rs485Button = rs485Input.nextElementSibling;
+    if (hardwareStatus.rs485) {
+      document.getElementById("rs485Last").innerText = data.rs485_last || "None";
+      rs485Input.disabled = false; rs485Button.disabled = false;
+    } else {
+      document.getElementById("rs485Last").innerText = "RS-485 not available";
+      rs485Input.disabled = true; rs485Button.disabled = true;
+    }
+
+    // USB
+    let usbStatusEl = document.getElementById("usbStatus");
+    let usbDevicesEl = document.getElementById("usbDevices");
+    if (data.usb_connected) {
+      usbStatusEl.innerText = "Connected"; usbStatusEl.className = "text-success";
+      usbDevicesEl.innerHTML = "";
+      if (data.usb_devices && data.usb_devices.length > 0) {
+        data.usb_devices.forEach(device => {
+          let deviceEl = document.createElement("div");
+          deviceEl.className = "usb-device";
+          deviceEl.innerText = `${device.description} (${device.id})`;
+          usbDevicesEl.appendChild(deviceEl);
+        });
+      }
+    } else {
+      usbStatusEl.innerText = "No devices detected"; usbStatusEl.className = "text-muted";
+      usbDevicesEl.innerHTML = "";
+    }
+
+    document.getElementById("timestamp").innerText = "Last updated: " + new Date().toLocaleTimeString();
+  })
+  .catch(error => { console.error('Error:', error); document.getElementById("timestamp").innerText = "Connection error"; });
+}
+
+/* -------------------- MCP23017 renderers --------------------- */
+function renderMCP(port, data, hw) {
+  let div = document.getElementById(port === "A" ? "gpioControlsA" : "gpioControlsB");
+  if (!hw.mcp23017) { div.innerHTML = "<p class='text-muted text-center'>MCP23017 not available</p>"; return; }
+  div.innerHTML = "";
+  for (let i=0; i<8; i++) {
+    let mask = 1 << i;
+    let isOn = (data.outputs?.[port] & mask) !== 0;
+    let btn = document.createElement("button");
+    btn.className = "btn m-1 " + (isOn ? "btn-success" : "btn-secondary");
+    btn.innerText = port + i;
+    btn.onclick = () => toggleOutput(port, i, isOn ? 0 : 1);
+    div.appendChild(btn);
+  }
+}
+
+/* ------------------- Raspberry Pi GPIO UI -------------------- */
+function updateRPiGPIO(data, rpiGpioAvailable) {
+  const controlsDiv = document.getElementById("rpiGpioControls");
+  if (!rpiGpioAvailable || !data.rpi_gpio) {
+    controlsDiv.innerHTML = "<p class='text-muted text-center'>Raspberry Pi GPIO not available</p>";
+    return;
+  }
+
+  const safePins = (data.rpi_gpio.safe_pins || []).slice().sort((a,b)=>a-b);
+  const configs  = data.rpi_gpio.configs || {};
+  const states   = data.rpi_gpio.states  || {};
+  controlsDiv.innerHTML = "";
+
+  safePins.forEach(pinNum => {
+    const mode  = configs[pinNum];
+    const state = states[pinNum];
+
+    const card = document.createElement("div");
+    card.className = "pin-card";
+
+    // Title
+    const title = document.createElement("div");
+    title.className = "pin-title";
+    title.textContent = `GPIO ${pinNum}`;
+    card.appendChild(title);
+
+    // Main toggle (enabled only when in Output mode)
+    const mainBtn = document.createElement("button");
+    mainBtn.className = "btn btn-main";
+    const inOutput = isOutputMode(mode);
+    const high     = isHighState(state);
+
+    if (inOutput) {
+      mainBtn.classList.add(high ? "btn-high" : "btn-low");
+      mainBtn.textContent = high ? "HIGH" : "LOW";
+      mainBtn.title = `Toggle GPIO ${pinNum} ${high ? 'HIGH→LOW' : 'LOW→HIGH'}`;
+      mainBtn.onclick = () => toggleRPiPin(pinNum, high ? 0 : 1);
+    } else {
+      mainBtn.classList.add("btn-off", "btn-disabled");
+      mainBtn.textContent = "Output only";
+      mainBtn.title = `Disabled until configured as Output`;
+    }
+    card.appendChild(mainBtn);
+
+    // Small mode buttons
+    const group = document.createElement("div");
+    group.className = "btn-group btn-group-sm";
+    // Config (Output)
+    const btnCfg = document.createElement("button");
+    btnCfg.className = "btn btn-config";
+    btnCfg.textContent = "Config";
+    btnCfg.title = `Set GPIO ${pinNum} as Output`;
+    btnCfg.onclick = () => setupRPiPinAsOutput(pinNum);
+    group.appendChild(btnCfg);
+
+    // Input
+    const btnIn = document.createElement("button");
+    btnIn.className = "btn btn-input";
+    btnIn.textContent = "Input";
+    btnIn.title = `Set GPIO ${pinNum} as Input`;
+    btnIn.onclick = () => setupRPiPinAsInput(pinNum);
+    group.appendChild(btnIn);
+
+    // Unconfig
+    const btnUn = document.createElement("button");
+    btnUn.className = "btn btn-unconfig";
+    btnUn.textContent = "Unconfig";
+    btnUn.title = `Reset GPIO ${pinNum} to unconfigured`;
+    btnUn.onclick = () => resetRPiPin(pinNum);
+    group.appendChild(btnUn);
+
+    card.appendChild(group);
+    controlsDiv.appendChild(card);
+  });
+}
+
+/* ----------------------- API actions ------------------------ */
+function setupRPiPinAsOutput(pin) { fetch(`/rpi_gpio/setup/${pin}/OUT`, {method: "POST"}).then(res=>res.json()).then(()=>fetchData()); }
+function setupRPiPinAsInput(pin)  { fetch(`/rpi_gpio/setup/${pin}/IN`,  {method: "POST"}).then(res=>res.json()).then(()=>fetchData()); }
+function toggleRPiPin(pin, state) { fetch(`/rpi_gpio/write/${pin}/${state}`, {method: "POST"}).then(res=>res.json()).then(()=>fetchData()); }
+function resetRPiPin(pin)         { fetch(`/rpi_gpio/reset/${pin}`,     {method: "POST"}).then(res=>res.json()).then(()=>fetchData()); }
+
+/* ------------------ MCP23017 + RS-485 actions ---------------- */
+function toggleOutput(port, pin, state) { fetch(`/gpio/write/${port}/${pin}/${state}`, {method:"POST"}).then(res=>res.json()).then(()=>fetchData()); }
+function sendRS485() { 
+  let msg=document.getElementById("rs485Input").value; 
+  if (!msg.trim()) return; 
+  fetch("/rs485/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({msg})})
+    .then(res=>res.json()).then(()=>{ document.getElementById("rs485Input").value=""; fetchData(); });
+}
+
+/* ------------------------- Boot ------------------------------ */
+setInterval(fetchData, 2000);
+fetchData();
+</script>
+</body>
+</html>
