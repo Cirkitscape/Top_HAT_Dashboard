@@ -176,7 +176,7 @@ def json_data():
 @app.route("/gpio/write/<port>/<int:pin>/<int:state>", methods=["POST"])
 def gpio_write(port, pin, state):
     """Toggle a single MCP23017 output pin."""
-    global current_outputs
+    current_outputs
     
     # Check if MCP23017 is available
     if not hardware_status["mcp23017"]:
