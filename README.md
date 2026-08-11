@@ -3,7 +3,7 @@ The CirkitScape Web App lets you monitor sensors, control GPIOs, and communicate
 
 # CirkitScape Web App
 
-The **CirkitScape Web App** is a lightweight, browser-based interface for the **Top HAT expansion board for Raspberry Pi**. It enables rapid prototyping, sensor monitoring, and automation—without needing to write code.
+The **CirkitScape Web App** is a lightweight, browser-based interface for the **Top HAT expansion board for Raspberry Pi**. It enables rapid prototyping, sensor monitoring, and automation, without needing to write code.
 
 ---
 
