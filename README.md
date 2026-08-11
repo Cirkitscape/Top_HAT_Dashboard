@@ -41,7 +41,7 @@ Access the dashboard in your browser at:
  - static/             # CSS/JS
  - templates/          # HTML templates
 
-Example Use Cases
+## Example Use Cases
 
 Test and validate industrial sensors quickly
 
@@ -51,11 +51,11 @@ Prototype IoT projects before scaling to production
 
 Classroom or lab teaching tool for Raspberry Pi
 
-License
+## License
 
 This project is licensed under the MIT License.
 
-Contact
+## Contact
 
 For support, feedback, or partnerships:
 CirkitScape – https://www.cirkitscape.tech
