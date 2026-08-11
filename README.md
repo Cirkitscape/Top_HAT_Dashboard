@@ -43,13 +43,13 @@ Access the dashboard in your browser at:
 
 ## Example Use Cases
 
-Test and validate industrial sensors quickly
+- Test and validate industrial sensors quickly
 
-Build custom automation dashboards
+- Build custom automation dashboards
 
-Prototype IoT projects before scaling to production
+- Prototype IoT projects before scaling to production
 
-Classroom or lab teaching tool for Raspberry Pi
+- Classroom or lab teaching tool for Raspberry Pi
 
 ## License
 
