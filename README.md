@@ -31,7 +31,7 @@ The **CirkitScape Web App** is a lightweight, browser-based interface for the **
 **Running the App**
 TopHatDashboard.py
 Access the dashboard in your browser at:
-👉 http://<raspberrypi-ip>:5000
+👉 http:// <raspberrypi-ip> :5000
 
  - TopHatDashboard.py  # Flask web app
  - adc_reader.py       # ADS1015 ADC functions
