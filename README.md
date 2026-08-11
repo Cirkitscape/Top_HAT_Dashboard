@@ -7,16 +7,16 @@ The **CirkitScape Web App** is a lightweight, browser-based interface for the **
 
 ---
 
-## ✨ Features
-- 📊 **ADC Monitoring** – View real-time sensor values using the onboard ADS1015.  
-- 🔌 **GPIO Control** – Configure and toggleGPIO pins via the MCP23017 expander and the RPi.  
-- 🔄 **RS-485 Communication** – Send and receive messages directly from the browser.  
-- 🌐 **Web Dashboard** – Accessible from any device on the same network.  
-- ⚡ **REST API** – Programmatic access to all functions for automation and integration.  
+## Features
+- **ADC Monitoring** – View real-time sensor values using the onboard ADS1015.  
+- **GPIO Control** – Configure and toggleGPIO pins via the MCP23017 expander and the RPi.  
+- **RS-485 Communication** – Send and receive messages directly from the browser.  
+- **Web Dashboard** – Accessible from any device on the same network.  
+- **REST API** – Programmatic access to all functions for automation and integration.  
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Raspberry Pi (3B/4/5 or Pi Zero 2 W recommended)  
@@ -33,15 +33,15 @@ TopHatDashboard.py
 Access the dashboard in your browser at:
 👉 http://<raspberrypi-ip>:5000
 
-├── TopHatDashboard.py              # Flask web app
-├── adc_reader.py       # ADS1015 ADC functions
-├── mcp_gpio.py         # MCP23017 GPIO expander functions
-├── rpi_gpio.py         # MCP23017 GPIO expander functions
-├── rs485_handler.py    # RS-485 communication functions
-├── static/             # CSS/JS
-├── templates/          # HTML templates
+── TopHatDashboard.py  # Flask web app
+── adc_reader.py       # ADS1015 ADC functions
+── mcp_gpio.py         # MCP23017 GPIO expander functions
+── rpi_gpio.py         # MCP23017 GPIO expander functions
+── rs485_handler.py    # RS-485 communication functions
+── static/             # CSS/JS
+── templates/          # HTML templates
 
-🛠 Example Use Cases
+Example Use Cases
 
 Test and validate industrial sensors quickly
 
@@ -51,11 +51,11 @@ Prototype IoT projects before scaling to production
 
 Classroom or lab teaching tool for Raspberry Pi
 
-📜 License
+License
 
 This project is licensed under the MIT License.
 
-📧 Contact
+Contact
 
 For support, feedback, or partnerships:
 CirkitScape – https://www.cirkitscape.tech
