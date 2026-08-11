@@ -33,13 +33,13 @@ TopHatDashboard.py
 Access the dashboard in your browser at:
 👉 http://<raspberrypi-ip>:5000
 
-── TopHatDashboard.py  # Flask web app
-── adc_reader.py       # ADS1015 ADC functions
-── mcp_gpio.py         # MCP23017 GPIO expander functions
-── rpi_gpio.py         # MCP23017 GPIO expander functions
-── rs485_handler.py    # RS-485 communication functions
-── static/             # CSS/JS
-── templates/          # HTML templates
+ - TopHatDashboard.py  # Flask web app
+ - adc_reader.py       # ADS1015 ADC functions
+ - mcp_gpio.py         # MCP23017 GPIO expander functions
+ - rpi_gpio.py         # MCP23017 GPIO expander functions
+ - rs485_handler.py    # RS-485 communication functions
+ - static/             # CSS/JS
+ - templates/          # HTML templates
 
 Example Use Cases
 
